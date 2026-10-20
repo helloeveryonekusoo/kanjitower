@@ -307,7 +307,6 @@
 
   // ---------- ランキング ----------
   let submitted = false;
-  let rankInfo = { mode: "local", canWrite: true };
 
   function prepareRankForm() {
     submitted = false;
@@ -315,15 +314,14 @@
     ui.rankName.value = Ranking.savedName();
     ui.rankSubmit.disabled = false;
     ui.rankStatus.textContent = "";
-    applyWritePermission();
+    Ranking.refresh();
   }
 
-  function applyWritePermission() {
-    if (rankInfo.mode === "shared" && !rankInfo.canWrite) {
-      ui.rankSubmit.disabled = true;
-      ui.rankStatus.textContent = "閲覧のみの共有なので、ランキングへの登録はできません";
-    }
-  }
+  const SUBMIT_ERRORS = {
+    network: "通信に失敗しました。もう一度「登録」を押してください",
+    forbidden: "この記録は登録できませんでした（別の端末の記録と重なっています）",
+    invalid: "この記録は登録できませんでした",
+  };
 
   async function submitRanking(e) {
     e.preventDefault();
@@ -340,25 +338,31 @@
     if (result.ok) {
       ui.rankStatus.textContent =
         result.improved === false ? "自己ベストの方が上なので、名前だけ更新しました" : "登録しました！";
-    } else if (result.reason === "no_permission") {
-      ui.rankStatus.textContent = "閲覧のみの共有なので、ランキングへの登録はできません";
     } else {
-      submitted = false;
-      ui.rankSubmit.disabled = false;
-      ui.rankStatus.textContent = "通信に失敗しました。もう一度「登録」を押してください";
+      // 通信エラーだけは再送できるようにする
+      if (result.reason === "network") {
+        submitted = false;
+        ui.rankSubmit.disabled = false;
+      }
+      ui.rankStatus.textContent = SUBMIT_ERRORS[result.reason] || SUBMIT_ERRORS.invalid;
     }
   }
 
   function renderRanking(rows, info) {
     const scope =
-      info.mode === "shared" ? "みんなのランキング（1人1件・自己ベスト）" : "この端末のランキング";
+      info.mode === "remote" ? "みんなのランキング（1人1件・自己ベスト）" : "この端末のランキング";
+    let message = "";
+    if (info.status === "loading" && rows.length === 0) message = "ランキングを読み込んでいます…";
+    else if (info.status === "error" && rows.length === 0)
+      message = "ランキングを読み込めませんでした。通信状況を確かめてください";
+    else if (rows.length === 0) message = "まだ記録がありません。最初の記録を作ろう！";
     for (const el of document.querySelectorAll(".ranking-scope")) el.textContent = scope;
     for (const list of document.querySelectorAll(".ranking-list")) {
       list.replaceChildren();
-      if (rows.length === 0) {
+      if (message) {
         const li = document.createElement("li");
         li.className = "empty";
-        li.textContent = "まだ記録がありません。最初の記録を作ろう！";
+        li.textContent = message;
         list.appendChild(li);
         continue;
       }
@@ -384,8 +388,6 @@
         list.appendChild(li);
       });
     }
-    rankInfo = info;
-    if (!submitted) applyWritePermission();
   }
 
   Ranking.onChange(renderRanking);
@@ -485,6 +487,7 @@
   $("btn-ranking").addEventListener("click", () => {
     ui.title.classList.add("hidden");
     ui.rankingScreen.classList.remove("hidden");
+    Ranking.refresh();
   });
   $("btn-ranking-close").addEventListener("click", () => {
     ui.rankingScreen.classList.add("hidden");
