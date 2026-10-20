@@ -9,7 +9,7 @@
   const PLATFORM_TOP = 0; // 台の上面の y
   const SEA_Y = PLATFORM_TOP + 110; // 墨の海の水面
   const FALL_Y = SEA_Y + 20; // これより下に字が落ちたら崩壊
-  const HOLD_GAP = 55; // 構えた字の下端とタワー頂上の間隔
+  const HOLD_GAP = 130; // 構えた字の下端とタワー頂上の間隔（落とす高さ）
   const MOVE_SPEED = 4.5; // キー操作時の横移動量（1フレーム）
   const ROTATE_STEP = Math.PI / 4; // 45度ずつ回転
   const SETTLE_FRAMES = 45; // この間ずっと静止していたら「積めた」
@@ -52,6 +52,11 @@
     finalHeight: $("final-height"),
     finalLog: $("final-log"),
     newRecord: $("new-record"),
+    rankingScreen: $("ranking-screen"),
+    rankForm: $("rank-form"),
+    rankName: $("rank-name"),
+    rankSubmit: $("btn-submit"),
+    rankStatus: $("rank-status"),
   };
 
   // ---------- 状態 ----------
@@ -294,10 +299,96 @@
       ui.finalHeight.textContent = `最高の高さ ${formatHeight(maxHeight)}`;
       ui.finalLog.textContent = log.slice(0, score).join("") || "—";
       ui.newRecord.classList.toggle("hidden", !isRecord || score === 0);
+      prepareRankForm();
       ui.over.classList.remove("hidden");
       updateHud();
     }, 1200);
   }
+
+  // ---------- ランキング ----------
+  let submitted = false;
+  let rankInfo = { mode: "local", canWrite: true };
+
+  function prepareRankForm() {
+    submitted = false;
+    ui.rankForm.classList.toggle("hidden", score === 0);
+    ui.rankName.value = Ranking.savedName();
+    ui.rankSubmit.disabled = false;
+    ui.rankStatus.textContent = "";
+    applyWritePermission();
+  }
+
+  function applyWritePermission() {
+    if (rankInfo.mode === "shared" && !rankInfo.canWrite) {
+      ui.rankSubmit.disabled = true;
+      ui.rankStatus.textContent = "閲覧のみの共有なので、ランキングへの登録はできません";
+    }
+  }
+
+  async function submitRanking(e) {
+    e.preventDefault();
+    if (submitted || score === 0) return;
+    submitted = true;
+    ui.rankSubmit.disabled = true;
+    ui.rankStatus.textContent = "登録しています…";
+    const result = await Ranking.submit({
+      name: ui.rankName.value,
+      score,
+      height: maxHeight,
+      kanji: log.slice(0, score).join(""),
+    });
+    if (result.ok) {
+      ui.rankStatus.textContent =
+        result.improved === false ? "自己ベストの方が上なので、名前だけ更新しました" : "登録しました！";
+    } else if (result.reason === "no_permission") {
+      ui.rankStatus.textContent = "閲覧のみの共有なので、ランキングへの登録はできません";
+    } else {
+      submitted = false;
+      ui.rankSubmit.disabled = false;
+      ui.rankStatus.textContent = "通信に失敗しました。もう一度「登録」を押してください";
+    }
+  }
+
+  function renderRanking(rows, info) {
+    const scope =
+      info.mode === "shared" ? "みんなのランキング（1人1件・自己ベスト）" : "この端末のランキング";
+    for (const el of document.querySelectorAll(".ranking-scope")) el.textContent = scope;
+    for (const list of document.querySelectorAll(".ranking-list")) {
+      list.replaceChildren();
+      if (rows.length === 0) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "まだ記録がありません。最初の記録を作ろう！";
+        list.appendChild(li);
+        continue;
+      }
+      rows.forEach((row, i) => {
+        const li = document.createElement("li");
+        if (Ranking.isMine(row)) li.classList.add("mine");
+        const pos = document.createElement("span");
+        pos.className = "pos";
+        pos.textContent = String(i + 1);
+        const who = document.createElement("span");
+        who.className = "who";
+        who.textContent = row.name;
+        const detail = document.createElement("small");
+        detail.textContent = `${formatHeight(row.height)}　${row.kanji}`;
+        who.appendChild(detail);
+        const pts = document.createElement("span");
+        pts.className = "pts";
+        pts.textContent = String(row.score);
+        const unit = document.createElement("small");
+        unit.textContent = "個";
+        pts.appendChild(unit);
+        li.append(pos, who, pts);
+        list.appendChild(li);
+      });
+    }
+    rankInfo = info;
+    if (!submitted) applyWritePermission();
+  }
+
+  Ranking.onChange(renderRanking);
 
   // ---------- HUD ----------
   function formatHeight(units) {
@@ -354,6 +445,8 @@
   });
 
   window.addEventListener("keydown", (e) => {
+    // 名前入力中やランキング表示中はゲーム操作にしない
+    if (e.target instanceof HTMLInputElement || !ui.rankingScreen.classList.contains("hidden")) return;
     if (e.repeat && !["ArrowLeft", "ArrowRight", "a", "d"].includes(e.key)) return;
     keys.add(e.key);
     if (state === "choose" && ["1", "2", "3"].includes(e.key)) choose(Number(e.key) - 1);
@@ -389,6 +482,15 @@
   $("btn-back").addEventListener("click", cancelAim);
   ui.start.addEventListener("click", startGame);
   ui.retry.addEventListener("click", startGame);
+  $("btn-ranking").addEventListener("click", () => {
+    ui.title.classList.add("hidden");
+    ui.rankingScreen.classList.remove("hidden");
+  });
+  $("btn-ranking-close").addEventListener("click", () => {
+    ui.rankingScreen.classList.add("hidden");
+    ui.title.classList.remove("hidden");
+  });
+  ui.rankForm.addEventListener("submit", submitRanking);
   window.addEventListener("resize", resize);
 
   function applyHeldMovement() {

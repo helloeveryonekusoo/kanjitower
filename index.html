@@ -50,6 +50,16 @@
         </ul>
         <p class="keys">PC: ←→ 移動 / ↑ 回転 / Space 落とす / 1・2・3 選択</p>
         <button id="btn-start" type="button" class="big" disabled>読み込み中…</button>
+        <button id="btn-ranking" type="button" class="link-btn">ランキングを見る</button>
+      </div>
+    </div>
+
+    <div id="ranking-screen" class="overlay hidden">
+      <div class="card">
+        <h2 class="rank-title">ランキング</h2>
+        <p class="rank-scope ranking-scope"></p>
+        <ol class="rank-list ranking-list"></ol>
+        <button id="btn-ranking-close" type="button" class="big">閉じる</button>
       </div>
     </div>
 
@@ -63,6 +73,18 @@
           <span class="label">積んだ漢字</span>
           <p id="final-log"></p>
         </div>
+        <form id="rank-form" class="rank-form">
+          <label for="rank-name">ランキングに登録</label>
+          <div class="rank-row">
+            <input id="rank-name" type="text" maxlength="12" placeholder="なまえ（12文字まで）" autocomplete="nickname">
+            <button id="btn-submit" type="submit" class="ctrl main">登録</button>
+          </div>
+          <p id="rank-status" class="rank-status" aria-live="polite"></p>
+        </form>
+        <div class="rank-box">
+          <p class="rank-scope ranking-scope"></p>
+          <ol class="rank-list ranking-list"></ol>
+        </div>
         <button id="btn-retry" type="button" class="big">もう一度</button>
       </div>
     </div>
@@ -71,6 +93,7 @@
   <script src="vendor/matter.min.js"></script>
   <script src="js/kanji.js"></script>
   <script src="js/shape.js"></script>
+  <script src="js/ranking.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
