@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>漢字タワー</title>
+  <meta name="description" content="3つの漢字から1つを選んで落とし、何個積めるかを競う物理パズルゲーム">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;900&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="stage" aria-label="ゲーム画面"></canvas>
+
+    <header id="hud">
+      <div class="stat"><span class="label">積んだ数</span><span id="score" class="value">0</span></div>
+      <div class="stat"><span class="label">高さ</span><span id="height" class="value">0.0<small>cm</small></span></div>
+      <div class="stat"><span class="label">ベスト</span><span id="best" class="value">0</span></div>
+    </header>
+
+    <section id="choices" class="hidden" aria-label="次に落とす漢字を選ぶ">
+      <p class="prompt">次に落とす漢字をえらぼう</p>
+      <div id="choice-list"></div>
+    </section>
+
+    <section id="aim-info" class="hidden">
+      <span id="aim-char"></span>
+      <span id="aim-reading"></span>
+      <span class="aim-hint">ドラッグで移動・離すと落下</span>
+    </section>
+
+    <nav id="controls" class="hidden">
+      <button id="btn-back" type="button" class="ctrl sub">選び直す</button>
+      <button id="btn-left" type="button" class="ctrl" aria-label="左へ">◀</button>
+      <button id="btn-rotate" type="button" class="ctrl" aria-label="回転">⟳</button>
+      <button id="btn-right" type="button" class="ctrl" aria-label="右へ">▶</button>
+      <button id="btn-drop" type="button" class="ctrl main">落とす</button>
+    </nav>
+
+    <div id="title-screen" class="overlay">
+      <div class="card">
+        <h1><span>漢</span><span>字</span><span>タ</span><span>ワ</span><span>ー</span></h1>
+        <p class="lead">3つの漢字から1つをえらんで落とし、<br>どこまで高く積めるか挑戦しよう！</p>
+        <ul class="rules">
+          <li>台から漢字がひとつでも落ちたら終了</li>
+          <li>落とした漢字が静止したら1個カウント</li>
+          <li>形がそのまま当たり判定。回転も使おう</li>
+        </ul>
+        <p class="keys">PC: ←→ 移動 / ↑ 回転 / Space 落とす / 1・2・3 選択</p>
+        <button id="btn-start" type="button" class="big" disabled>読み込み中…</button>
+        <button id="btn-ranking" type="button" class="link-btn">ランキングを見る</button>
+      </div>
+    </div>
+
+    <div id="ranking-screen" class="overlay hidden">
+      <div class="card">
+        <h2 class="rank-title">ランキング</h2>
+        <p class="rank-scope ranking-scope"></p>
+        <ol class="rank-list ranking-list"></ol>
+        <button id="btn-ranking-close" type="button" class="big">閉じる</button>
+      </div>
+    </div>
+
+    <div id="over-screen" class="overlay hidden">
+      <div class="card">
+        <h2>タワー崩壊！</h2>
+        <p class="result"><span id="final-score">0</span><small>個</small></p>
+        <p id="final-height" class="sub-result"></p>
+        <p id="new-record" class="record hidden">ベスト更新！</p>
+        <div class="tower-log">
+          <span class="label">積んだ漢字</span>
+          <p id="final-log"></p>
+        </div>
+        <form id="rank-form" class="rank-form">
+          <label for="rank-name">ランキングに登録</label>
+          <div class="rank-row">
+            <input id="rank-name" type="text" maxlength="12" placeholder="なまえ（12文字まで）" autocomplete="nickname">
+            <button id="btn-submit" type="submit" class="ctrl main">登録</button>
+          </div>
+          <p id="rank-status" class="rank-status" aria-live="polite"></p>
+        </form>
+        <div class="rank-box">
+          <p class="rank-scope ranking-scope"></p>
+          <ol class="rank-list ranking-list"></ol>
+        </div>
+        <button id="btn-retry" type="button" class="big">もう一度</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/matter.min.js"></script>
+  <script src="js/kanji.js"></script>
+  <script src="js/shape.js"></script>
+  <script src="js/ranking.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
